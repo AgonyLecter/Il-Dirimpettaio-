@@ -11,16 +11,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-html,body{width:100%;height:100%;background:#000;overflow:hidden;color:#d8cfc0;font-family:'Special Elite','Courier New',monospace;touch-action:none}
+html,body{position:fixed;inset:0;width:100%;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;color:#d8cfc0;font-family:'Special Elite','Courier New',monospace;touch-action:none}
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated}
 .ov{position:fixed;inset:0;display:none;z-index:20}
 .ov.on{display:flex}
 /* TITLE */
-#title{flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:20px env(safe-area-inset-right) 20px env(safe-area-inset-left);background:radial-gradient(ellipse at 50% 40%,#1a0d0b 0%,#050303 60%,#000 100%);overflow:auto}
+#title{flex-direction:column;align-items:center;justify-content:center;gap:min(14px,2vh);padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 40%,#1a0d0b 0%,#050303 60%,#000 100%);overflow:hidden}
+#title .tL{display:flex;flex-direction:column;align-items:center;gap:min(14px,2.2vh);min-width:0}
+.lnk{background:none;border:0;color:#7d6d5c;font-family:inherit;font-size:12px;text-decoration:underline;cursor:pointer;letter-spacing:.05em}
 #title h1{font-family:'IM Fell English SC',serif;font-weight:400;font-size:min(clamp(34px,9vw,72px),15vh);letter-spacing:.06em;color:#c9b9a0;text-shadow:0 0 18px #6b0f0a,0 0 2px #000;animation:flick 6s infinite}
 #title .tsub{font-size:13px;color:#8a7c6a;letter-spacing:.1em;text-align:center}
 @keyframes flick{0%,92%,100%{opacity:1}93%{opacity:.3}94%{opacity:1}96%{opacity:.5}}
-#mem{max-width:520px;width:100%;border:1px solid #3a2a22;background:#0b0606cc;padding:12px 14px;font-size:13px;line-height:1.55;color:#b7a58c}
+#mem{max-width:520px;width:100%;max-height:30vh;overflow:hidden;-webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent);border:1px solid #3a2a22;background:#0b0606cc;padding:12px 14px;font-size:13px;line-height:1.55;color:#b7a58c}
 #mem b{color:#d34a35;font-weight:400}
 #mem .h{font-family:'IM Fell English SC',serif;color:#d8cfc0;font-size:15px;margin-bottom:4px;letter-spacing:.08em}
 #title input{background:#120a08;border:1px solid #4a3328;color:#e8dcc8;font-family:inherit;font-size:16px;padding:10px 12px;width:220px;text-align:center;outline:none}
@@ -33,6 +35,11 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block;image-rend
 #intro{align-items:center;justify-content:center;background:#000;padding:30px;text-align:center}
 #intro p{font-size:clamp(15px,4vw,22px);line-height:1.8;color:#cbbba3;max-width:640px;opacity:0;transition:opacity 1.5s}
 #intro p.on{opacity:1}
+#intro{flex-direction:column}
+#intro .when{font-family:'IM Fell English SC',serif;color:#d34a35;letter-spacing:.2em;font-size:clamp(12px,3vw,15px);height:1.4em;margin-bottom:2vh;opacity:.85}
+#intro .skip{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));font-size:12px;color:#6d6155;letter-spacing:.12em;padding:10px;border:1px solid #2a201a;background:#0008;font-family:inherit;cursor:pointer}
+#intro .tap{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);font-size:11px;color:#4d443b;letter-spacing:.12em;white-space:nowrap}
+#intro.on p{animation:jit 7s infinite}@keyframes jit{0%,96%,100%{transform:none}97%{transform:translateX(1px)}98%{transform:translateX(-1px)}}
 /* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:5;display:none}
 #hud.on{display:block}
@@ -97,6 +104,24 @@ body.stereo #read .paper{max-width:44vw;font-size:11px}
 #noteRow input{background:#120a08;border:1px solid #4a3328;color:#e8dcc8;font-family:inherit;font-size:15px;padding:9px 10px;width:250px;outline:none}
 [data-h=hint]{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-size:12px;color:#bfae95;text-align:center;line-height:1.7;text-shadow:0 0 5px #000;pointer-events:none;opacity:0;transition:opacity 1s;width:90%}
 body.stereo [data-h=hint]{font-size:10px;top:28%;width:70%}
+.tut{position:absolute;left:max(12px,env(safe-area-inset-left));bottom:calc(14% + 26px + env(safe-area-inset-bottom));max-width:min(360px,46%);font-size:12px;line-height:1.55;color:#d8cfc0;background:#0b0606d0;border-left:2px solid #d34a35;padding:8px 11px;text-shadow:0 0 3px #000;opacity:0;transition:opacity .4s}
+.tut b{color:#efc9a8;font-weight:400}.tut .n{display:block;font-size:10px;color:#8a6a58;letter-spacing:.14em;margin-bottom:2px}.tut.ok{border-left-color:#7ab07a}
+body.stereo .tut{left:18%;bottom:30%;max-width:30%;font-size:10px}
+@media (max-height:520px){
+ #title{flex-direction:row;gap:4vw}
+ #title h1{font-size:min(11vh,5.4vw);text-align:center;line-height:1.05}
+ #title .tsub{font-size:11px}
+ #mem{max-width:44vw;max-height:84vh;font-size:12px;line-height:1.45}
+ .b{padding:9px 16px;font-size:14px}
+ #title input{padding:7px 10px}
+ .tiny{font-size:10px}
+ #dead,#win,#pause{gap:8px;padding:10px 16px}
+ #dead h2,#win h2,#pause h2{font-size:min(11vh,8vw)}
+ .learn{max-height:34vh;overflow:hidden;font-size:12px;line-height:1.45}
+ #noteRow input{padding:6px 9px;font-size:16px}
+ .tut{bottom:calc(10% + 22px);font-size:11px}
+}
+@media (max-height:520px) and (orientation:portrait){#title{flex-direction:column}}
 #rot{flex-direction:column;gap:10px;align-items:center;justify-content:center;background:#000;z-index:40;font-size:16px;text-align:center;padding:30px}
 </style>
 </head>
@@ -118,6 +143,7 @@ body.stereo [data-h=hint]{font-size:10px;top:28%;width:70%}
   <div class="sub" data-h="sub"></div>
   <div data-h="hint"></div>
   <div class="hand" data-h="hand"></div>
+  <div class="tut" data-h="tut"></div>
   <div class="bars"><div class="bar" data-h="stam"><div></div></div><div class="bar br" data-h="breath"><div></div></div></div>
 </template>
 
@@ -135,17 +161,20 @@ body.stereo [data-h=hint]{font-size:10px;top:28%;width:70%}
 </div>
 
 <div class="ov on" id="title">
+  <div class="tL">
   <h1>IL DIRIMPETTAIO</h1>
   <div class="tsub">NOTTE 1 · VIA DEI GLICINI 13 · VALDORME, 1987</div>
-  <div id="mem"><div class="h">ETTORE RICORDA</div><div id="memBody">La radio sta ascoltando…</div></div>
   <input id="name" maxlength="12" placeholder="il tuo nome" autocomplete="off">
   <div class="btns">
     <button class="b" id="bStart">ENTRA</button>
   </div>
+  <button class="lnk" id="bTut">rivedi prologo e tutorial</button>
   <div class="tiny">🎧 Usa le cuffie: senti da dove arriva Ettore, anche alle tue spalle.<br>Gioca col telefono in orizzontale:<br>tocca lo schermo per andare a schermo intero.</div>
+  </div>
+  <div id="mem"><div class="h">ETTORE RICORDA</div><div id="memBody">La radio sta ascoltando…</div></div>
 </div>
 
-<div class="ov" id="intro"><p id="introP"></p></div>
+<div class="ov" id="intro"><div class="when" id="introW"></div><p id="introP"></p><div class="tap">TOCCA PER CONTINUARE</div><button class="skip" id="introSkip">SALTA ›</button></div>
 
 <div class="ov" id="read"><div class="paper"><h3 id="readT"></h3><div id="readB"></div><button class="b" id="readX">CHIUDI</button></div></div>
 
@@ -466,6 +495,11 @@ const P={x:8.5,z:21.3,y:0,yaw:-0.3,pitch:0,crouch:false,torch:true,run:false,sta
 const E={x:13.45,z:14.7,yaw:Math.PI/2,state:'tv',t:rnd(28,42),seat:1,path:[],tx:0,tz:0,finalX:null,finalZ:null,head:0,headT:0,walk:0,moving:false,
   susp:0,lastSeen:null,lostT:0,searchList:[],checkT:0,checkSpot:null,knownSpot:null,sayCd:0,doorWait:null,repathT:0,stepT:0,arms:0,
   frenzyT:0,met:false,pauseT:0,lastRoomCheck:null,eyesRed:0,ignoreUntil:0};
+const G0=structuredClone(G),P0=structuredClone(P),E0=structuredClone(E);
+function resetState(){const st=G.stereo,yo=P.yawOff;
+  for(const k of Object.keys(G))delete G[k];Object.assign(G,structuredClone(G0),{stereo:st});
+  for(const k of Object.keys(P))delete P[k];Object.assign(P,structuredClone(P0),{yawOff:yo});
+  for(const k of Object.keys(E))delete E[k];Object.assign(E,structuredClone(E0),{t:rnd(28,42)});}
 let DOORS=[],DOOR_AT={},WINDOWS=[],FURN=[],ITEMS=[],EW=null,LIGHTS=[];
 
 /* =====================================================================
@@ -1231,7 +1265,7 @@ function updateEttore(dt){
 
 function catchPlayer(how){
   if(G.state!=='play')return;
-  G.state='caught';G.catchT=0;E.state='caught';E.eyesRed=1;E.arms=1;
+  G.state='caught';G.catchT=0;hudStyle('tut','opacity','0');E.state='caught';E.eyesRed=1;E.arms=1;
   const room=roomAt(P.hidden?P.hidden.px:P.x,P.hidden?P.hidden.pz:P.z);
   if(P.hidden){const h=P.hidden;P.x=h.ex;P.z=h.ez;P.hidden=null;$('#hideov').className='';}
   E.yaw=Math.atan2(-(P.x-E.x),-(P.z-E.z));
@@ -1308,7 +1342,7 @@ function noiseForce(x,z){if(E.state==='tv'||E.state==='stand'){E.state='stand';E
 function onEnter(){
   const e=P.lastPortal;
   if(!G.entryDone&&e){G.entryDone=true;G.firstEntry=e;mem.entries[e]=(mem.entries[e]||0)+1;saveMem();netInc('stats/entry_'+e);}
-  if(!G.enteredOnce){G.enteredOnce=true;showHint(G.stereo?'Ascolta i suoi passi. Se ti vede: corri e nasconditi.<br>Nascosto: tieni premuto (o grilletto sinistro) per trattenere il respiro.':IS_TOUCH?'Ascolta i suoi passi. Se ti vede: corri, chiudi le porte, nasconditi.<br>Mentre sei nascosto, tieni premuto TRATTIENI RESPIRO quando è vicino.':'Ascolta i suoi passi. Se ti vede: corri, chiudi le porte, nasconditi.<br>Nascosto: tieni premuto SPAZIO per trattenere il respiro quando è vicino.',7);}
+  if(!G.enteredOnce){G.enteredOnce=true;if(!TUT.on)showHint(G.stereo?'Ascolta i suoi passi. Se ti vede: corri e nasconditi.<br>Nascosto: tieni premuto (o grilletto sinistro) per trattenere il respiro.':IS_TOUCH?'Ascolta i suoi passi. Se ti vede: corri, chiudi le porte, nasconditi.<br>Mentre sei nascosto, tieni premuto TRATTIENI RESPIRO quando è vicino.':'Ascolta i suoi passi. Se ti vede: corri, chiudi le porte, nasconditi.<br>Nascosto: tieni premuto SPAZIO per trattenere il respiro quando è vicino.',7);}
 }
 function onExit(){if(P.hasTape)win();}
 
@@ -1357,7 +1391,13 @@ function win(){
 function hideTouch(){$('#touch').classList.remove('on');$('#hud').classList.remove('on');}
 $('#bNote').onclick=()=>{const t=$('#note').value.trim().slice(0,40);if(!t)return;netSet('notes/'+pid,{name:playerName(),text:t,at:Date.now(),x:+P.x.toFixed(2),z:+P.z.toFixed(2)});$('#bNote').textContent=NET.ok?'SCRITTO':'OFFLINE';$('#bNote').disabled=true;};
 $('#bRetry').onclick=()=>restart();$('#bAgain').onclick=()=>restart();
-function restart(){try{sessionStorage.setItem('dir_restart','1');}catch(e){}location.reload();}
+// ricomincia senza ricaricare la pagina: resti a schermo intero
+function restart(){
+  for(const id of['dead','win','pause','read'])$('#'+id).classList.remove('on');
+  $('#hideov').className='';$('#flash').style.opacity='0';THROWN.length=0;subT=0;hud('sub','');hud('tut','');hudStyle('tut','opacity','0');
+  for(const k in keys)keys[k]=false;IN.breath=false;IN.run=false;
+  if(AU.ctx){const t=AU.ctx.currentTime;AU.chase.gain.setTargetAtTime(0,t,0.2);AU.tapeN.gain.setTargetAtTime(0,t,0.2);}
+  resetState();start(G.stereo,true);}
 
 /* =====================================================================
    RENDER
@@ -1489,6 +1529,7 @@ function update(dt){
   if(G.state==='play'&&!G.paused){
     G.runT+=dt;
     updatePlayer(dt);
+    tutTick(dt);
     if(G.state==='play')updateEttore(dt);
     // porte
     for(const d of DOORS){if(d.open!==d.target){const s=d.speed*dt;d.open=d.open<d.target?Math.min(d.target,d.open+s):Math.max(d.target,d.open-s);}}
@@ -1534,9 +1575,10 @@ $('#readX').onclick=()=>closeRead();
 $('#read').addEventListener('click',e=>{if(G.stereo||e.target.id==='read')closeRead();});
 $('#pauseHelp').innerHTML=IS_TOUCH?'Joystick a sinistra · trascina a destra per guardarti intorno':'WASD muovi · mouse guarda · SHIFT corri · C accovacciati · E azione · F torcia · Q lancia · SPAZIO trattieni il respiro';
 
-async function start(vr){
+async function start(vr,again=false){
   auInit();
   LS.set('dir_name',$('#name').value.trim().slice(0,12));
+  for(const id of['dead','win'])$('#'+id).classList.remove('on');
   G.stereo=!!vr;document.body.classList.toggle('stereo',G.stereo);
   goFull();
   mem.plays++;mem.runs++;saveMem();netInc('stats/plays');
@@ -1547,21 +1589,76 @@ async function start(vr){
   resize();
   $('#title').classList.remove('on');
   checkRot();
-  await intro();
+  await intro(again);
+  TUT.on=!mem.tutDone;TUT.i=0;TUT.t=0;TUT.look=0;TUT.dist=0;TUT.shown=-1;TUT.lx=P.x;TUT.lz=P.z;TUT.ly=P.yaw;TUT.okT=0;
   G.state='play';$('#hud').classList.add('on');if(IS_TOUCH&&!G.stereo)$('#touch').classList.add('on');
   $('#bTorch').classList.toggle('on',P.torch);
   setObjective();
   const tn=G.trapNotes.length?G.trapNotes[0]:'';
-  showHint((IS_TOUCH&&!G.stereo?'Joystick a sinistra · trascina a destra per guardare<br>':G.stereo?'Tieni premuto per camminare · tocco breve per interagire<br>':'WASD · mouse · SHIFT corri · C giù · E azione · F torcia<br>')+'<span style="color:#d34a35">Spegnere la torcia ti rende quasi invisibile. E quasi cieco.</span>'+(tn?`<br><br><span style="color:#d34a35">${tn}</span>`:''),9);
+  if(TUT.on){if(tn)showHint(`<span style="color:#d34a35">${tn}</span>`,8);}else showHint((IS_TOUCH&&!G.stereo?'Joystick a sinistra · trascina a destra per guardare<br>':G.stereo?'Tieni premuto per camminare · tocco breve per interagire<br>':'WASD · mouse · SHIFT corri · C giù · E azione · F torcia<br>')+'<span style="color:#d34a35">Spegnere la torcia ti rende quasi invisibile. E quasi cieco.</span>'+(tn?`<br><br><span style="color:#d34a35">${tn}</span>`:''),9);
 }
-function intro(){return new Promise(res=>{
-  const lines=['Da otto anni nessuno entra in casa Malvezzi.','Stanotte la radio del tuo dirimpettaio si è accesa da sola.','Ha detto il tuo nome.'];
-  if(mem.plays>1)lines.splice(0,3,'Sei tornato.','Ettore se lo aspettava.','La radio ricorda tutto quello che hai fatto.');
-  const el=$('#intro'),p=$('#introP');el.classList.add('on');let i=0,done=false;
-  const fin=()=>{if(done)return;done=true;el.classList.remove('on');el.onclick=null;res();};
-  el.onclick=fin;
-  const nx=()=>{if(done)return;if(i>=lines.length){p.classList.remove('on');setTimeout(fin,900);return;}p.classList.remove('on');setTimeout(()=>{p.textContent=lines[i++];p.classList.add('on');setTimeout(nx,2300);},500);};nx();
+function intro(again){return new Promise(res=>{
+  const nm=playerName();const yours=nm==='Anonimo'?'Ha detto il tuo nome.':`Ha detto il tuo nome. «${nm}».`;
+  let lines;
+  if(!mem.prologueSeen)lines=[
+    ['VALDORME · 1987','Un paese di millecento anime, in fondo a una valle dove la nebbia non se ne va mai.'],
+    ['VIA DEI GLICINI 13','Di fronte a casa tua abita Ettore Malvezzi. Ripara radio.'],
+    ['OTTOBRE 1979','Sua moglie Lucia e sua figlia Anna sono sparite. Tre giorni, poi più niente.'],
+    ['','Il paese dice che è stato lui. Nessuno è mai riuscito a dimostrarlo.'],
+    ['','Da otto anni nessuno entra in casa Malvezzi.'],
+    ['STANOTTE','Poco fa, oltre la strada, la sua radio si è accesa da sola.'],
+    ['',yours],
+    ['','Entri per dimostrare che è un mostro.<br>Ma lui ti studia. E la casa mente.']];
+  else if(again)lines=[['','Rientri.'],['','La radio ricorda come sei caduto.']];
+  else lines=[['NOTTE DOPO NOTTE','Sei tornato.'],['','Ettore se lo aspettava.'],['','La radio ricorda tutto quello che hai fatto. E quello che hanno fatto gli altri.']];
+  const el=$('#intro'),p=$('#introP'),w=$('#introW');el.classList.add('on');let i=0,done=false,tm=null;
+  if(AU.ctx){AU.tapeN.gain.setTargetAtTime(0.025,AU.ctx.currentTime,0.5);}
+  const fin=()=>{if(done)return;done=true;clearTimeout(tm);el.classList.remove('on');el.onclick=null;p.classList.remove('on');w.textContent='';
+    if(AU.ctx)AU.tapeN.gain.setTargetAtTime(0,AU.ctx.currentTime,0.6);mem.prologueSeen=true;saveMem();res();};
+  $('#introSkip').onclick=e=>{e.stopPropagation();fin();};
+  const nx=()=>{if(done)return;clearTimeout(tm);if(i>=lines.length){p.classList.remove('on');tm=setTimeout(fin,700);return;}
+    p.classList.remove('on');const[wh,tx]=lines[i++];
+    tm=setTimeout(()=>{w.textContent=wh;p.innerHTML=tx;p.classList.add('on');
+      if(AU.ctx){if(i===6||i===7)sfx('heart',undefined,undefined,0.8);if(i===6)nz({dur:0.7,type:'bandpass',f:1400,q:2,vol:0.12,att:0.05,dest:AU.body});}
+      tm=setTimeout(nx,1800+tx.length*45);},500);};
+  el.onclick=()=>nx();nx();
 });}
+/* ---------- tutorial guidato (solo la prima volta, o se lo richiedi) ---------- */
+const TUT={on:false,i:0,t:0,look:0,dist:0,shown:-1,lx:0,lz:0,ly:0,okT:0};
+function ctl(){
+  if(G.stereo)return{look:'Gira la testa.',move:'Tieni premuto lo schermo per camminare.',act:'tocca brevemente lo schermo',run:'corri',breath:'tieni premuto lo schermo',thr:'Tocco breve'};
+  if(IS_TOUCH)return{look:'Trascina il dito sulla metà destra dello schermo.',move:'Usa il joystick: tocca e trascina sulla metà sinistra.',crouch:'Tasto GIÙ.',torch:'Tasto TORCIA.',act:'premi AZIONE',run:'tasto CORRI',breath:'tieni premuto TRATTIENI RESPIRO',thr:'Tasto LANCIA'};
+  return{look:'Muovi il mouse (clicca per bloccarlo) o usa ← →.',move:'W A S D.',crouch:'Premi C.',torch:'Premi F.',act:'premi E',run:'tieni SHIFT',breath:'tieni premuto SPAZIO',thr:'Premi Q (o tasto destro)'};}
+const TUT_STEPS=[
+  {t:c=>`<b>Guardati intorno.</b> ${c.look}`,done:()=>TUT.look>1.4},
+  {t:c=>`<b>Avvicinati alla casa.</b> ${c.move}`,done:()=>TUT.dist>3},
+  {t:c=>`<b>Accovacciati.</b> Vai più piano, ma i passi quasi non si sentono. ${c.crouch}`,done:()=>P.crouch,skip:()=>G.stereo},
+  {t:c=>`<b>Spegni la torcia.</b> Al buio sei quasi invisibile. E quasi cieco. ${c.torch}`,done:()=>!P.torch,skip:()=>G.stereo},
+  {t:c=>`<b>Riaccendila.</b> Ricorda: Ettore vede la luce prima di vedere te. ${c.torch}`,done:()=>P.torch,skip:()=>G.stereo},
+  {t:()=>`<b>Ascolta.</b> Con le cuffie senti da dove arriva ogni suono, anche alle tue spalle. Senti la TV? Ettore è lì davanti.`,done:()=>TUT.t>6},
+  {t:c=>`<b>Entra.</b> Porta sul retro o una finestra: avvicinati e ${c.act}. Le finestre fanno rumore.`,done:()=>P.inside},
+  {t:c=>`<b>Il nastro è nello studio.</b> Passi, porte e vetri fanno rumore. Se ti vede: ${c.run}, chiudi le porte dietro di te e <b>nasconditi</b>.`,done:()=>TUT.t>8},
+  {t:c=>`<b>Sei nascosto.</b> Quando è vicino, ${c.breath} per trattenere il respiro. La vista trema e l'aria finisce.`,wait:()=>!!P.hidden,done:()=>TUT.t>6},
+  {t:c=>`<b>Hai raccolto qualcosa.</b> ${c.thr} per lanciarlo: il rumore lo porta lontano da te.`,wait:()=>!!P.hand,done:()=>TUT.t>6,skip:()=>G.stereo},
+];
+function tutTick(dt){
+  if(!TUT.on)return;
+  TUT.look+=Math.abs(angDiff(TUT.ly,P.yaw));TUT.ly=P.yaw;TUT.dist+=Math.hypot(P.x-TUT.lx,P.z-TUT.lz);TUT.lx=P.x;TUT.lz=P.z;
+  // finché impari in giardino, Ettore resta davanti alla TV
+  if(!P.inside&&E.state==='tv')E.t=Math.max(E.t,12);
+  if(TUT.okT>0){TUT.okT-=dt;if(TUT.okT<=0)hudStyle('tut','opacity','0');return;}
+  let st=TUT_STEPS[TUT.i];
+  while(st&&st.skip&&st.skip()){TUT.i++;st=TUT_STEPS[TUT.i];}
+  if(!st){TUT.on=false;mem.tutDone=true;saveMem();hudStyle('tut','opacity','0');return;}
+  if(st.wait&&!st.wait()){if(TUT.shown!==-2){TUT.shown=-2;hudStyle('tut','opacity','0');}return;}
+  if(TUT.shown!==TUT.i){TUT.shown=TUT.i;TUT.t=0;const vis=TUT_STEPS.filter(s=>!(s.skip&&s.skip()));
+    hud('tut',`<span class="n">TUTORIAL · ${vis.indexOf(st)+1}/${vis.length}</span>${st.t(ctl())}`,true);hudStyle('tut','opacity','1');
+    for(const el of document.querySelectorAll('[data-h="tut"]'))el.classList.remove('ok');}
+  TUT.t+=dt;
+  if(st.done()){TUT.i++;TUT.look=0;TUT.dist=0;sfx('pickup');for(const el of document.querySelectorAll('[data-h="tut"]'))el.classList.add('ok');
+    TUT.okT=st.wait?0.6:0.9;}
+}
+$('#bTut').onclick=()=>{mem.tutDone=false;mem.prologueSeen=false;saveMem();$('#bTut').textContent='ok: alla prossima entrata';};
 $('#bStart').onclick=()=>start(false);
 /* schermo intero orizzontale: al primo tocco (e a ogni tocco se se ne esce) */
 function goFull(){if(!IS_TOUCH)return;const d=document.documentElement;const fs=document.fullscreenElement||document.webkitFullscreenElement;
@@ -1573,6 +1670,8 @@ addEventListener('resize',()=>{resize();checkRot();});
 addEventListener('orientationchange',()=>setTimeout(()=>{resize();checkRot();},250));
 document.addEventListener('fullscreenchange',()=>setTimeout(resize,100));
 checkRot();
+// niente scroll: dopo la tastiera del telefono la pagina torna ferma
+addEventListener('scroll',()=>{if(scrollX||scrollY)scrollTo(0,0);});document.addEventListener('focusout',()=>setTimeout(()=>scrollTo(0,0),60));
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G.state==='play'&&!G.paused)togglePause();});
 
 resize();requestAnimationFrame(frame);
