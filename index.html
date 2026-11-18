@@ -511,17 +511,20 @@ function fur(x0,z0,x1,z1,h,c,m=0,o={}){const y0=o.y0||0;box(x0,y0,z0,x1,y0+h,z1,
 const WOOD=[.30,.19,.11],DARKW=[.18,.11,.07],METAL=[.35,.36,.38],CLOTH=[.42,.12,.10];
 
 function decideTraps(){
-  // Personale: ogni volta che rientri dallo stesso punto, Ettore se ne accorge.
+  // Personale: se rientri sempre dallo stesso punto, Ettore se ne accorge. Ma con calma.
   G.boarded=new Set();G.cans=null;G.trapNotes=[];
-  const pe=Object.entries(mem.entries).sort((a,b)=>b[1]-a[1]);
-  if(pe.length){const[id,n]=pe[0];
-    if(n>=3){G.boarded.add(id);G.trapNotes.push(`Ha inchiodato ${ENTRY_BY_ID[id].nome}: ci sei passato ${n} volte.`);}
-    else{G.cans=id;G.trapNotes.push(`Ha messo delle lattine sotto ${ENTRY_BY_ID[id].nome}: ricorda che sei entrato da lì.`);}}
-  // Globale: l'ingresso più usato da tutti viene sbarrato.
-  const ge=Object.entries(NET.stats).filter(([k])=>k.startsWith('entry_')).map(([k,v])=>[k.slice(6),v]).filter(([k])=>ENTRY_BY_ID[k]).sort((a,b)=>b[1]-a[1]);
+  const runs=mem.runs||1,mc=mercy();
+  const pe=Object.entries(mem.entries).filter(([k])=>ENTRY_BY_ID[k]).sort((a,b)=>b[1]-a[1]);
+  if(pe.length&&runs>=2&&mc<0.6){const[id,n]=pe[0];
+    if(n>=4&&runs>=4&&id!=='porta_retro'){G.boarded.add(id);G.trapNotes.push(`Ha inchiodato ${ENTRY_BY_ID[id].nome}: ci sei passato ${n} volte. Entra da un'altra parte e tra qualche notte toglierà le assi.`);}
+    else if(n>=2){G.cans=id;G.trapNotes.push(`Ha messo delle lattine sotto ${ENTRY_BY_ID[id].nome}: ricorda che sei entrato da lì.`);}}
+  // Globale: l'ingresso più usato da tutti viene sbarrato, solo per chi ha già esperienza.
+  const ge=Object.entries(NET.stats).filter(([k])=>k.startsWith('entry_')).map(([k,v])=>[k.slice(6),v]).filter(([k])=>ENTRY_BY_ID[k]&&k!=='porta_retro').sort((a,b)=>b[1]-a[1]);
   const tot=ge.reduce((s,e)=>s+e[1],0);
-  if(ge.length&&tot>=8&&ge[0][1]/tot>=0.28&&!G.boarded.has(ge[0][0])&&G.cans!==ge[0][0]){G.boarded.add(ge[0][0]);G.trapNotes.push(`${cap(ENTRY_BY_ID[ge[0][0]].nome)} è sbarrata: il ${Math.round(ge[0][1]/tot*100)}% dei visitatori entra da lì.`);}
-  if(G.boarded.size>3){const a=[...G.boarded];G.boarded=new Set(a.slice(0,3));}
+  if(runs>=6&&mc<0.3&&ge.length&&tot>=8&&ge[0][1]/tot>=0.28&&!G.boarded.has(ge[0][0])&&G.cans!==ge[0][0]){G.boarded.add(ge[0][0]);G.trapNotes.push(`${cap(ENTRY_BY_ID[ge[0][0]].nome)} è sbarrata: il ${Math.round(ge[0][1]/tot*100)}% dei visitatori entra da lì.`);}
+  if(G.boarded.size>2){const a=[...G.boarded];G.boarded=new Set(a.slice(0,2));}
+  if(G.boarded.size)G.trapNotes.push('La porta sul retro non la inchioda mai.');
+  if(mc>=0.6)G.trapNotes.push('Ettore è stanco di inseguirti. Stanotte è più lento e meno attento.');
 }
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 
@@ -1162,7 +1165,7 @@ function noise(x,z,r,kind){
   if(['chase','frenzy','caught','stand'].includes(E.state))return;
   const d=Math.hypot(E.x-x,E.z-z);let eff=r*Math.pow(0.55,wallsBetween(E.x,E.z,x,z));if(E.state==='tv')eff*=0.6;
   if(d>eff)return;
-  if(kind==='throw'&&mem.throws>=4&&Math.random()<0.55){eSay(['Non sono stupido.','Di nuovo il trucco della bottiglia?','Le bottiglie non camminano da sole.'],8);return;}
+  if(kind==='throw'&&mem.throws>=6&&Math.random()<0.55*learn()){eSay(['Non sono stupido.','Di nuovo il trucco della bottiglia?','Le bottiglie non camminano da sole.'],8);return;}
   if(kind==='breath'||kind==='gasp'){if(P.hidden){E.knownSpot=P.hidden.id;startSearch(P.hidden.px,P.hidden.pz,4);eSay(['Ti sento respirare.','Shh… eccoti.'],5);}return;}
   if(E.state==='tv'){E.state='stand';E.t=0.9;E.invX=x;E.invZ=z;sfx('hm',E.x,E.z);return;}
   investigate(x,z);if(Math.random()<0.5)sfx('hm',E.x,E.z);
@@ -1172,14 +1175,21 @@ function noise(x,z,r,kind){
    IA DI ETTORE
    ===================================================================== */
 const SPEED={patrol:1.45,investigate:2.3,search:2.0,chase:4.25,frenzy:4.6};
-function chaseSpeed(){return SPEED.chase*(1+Math.min(mem.caught,6)*0.025);}
+/* Quanto Ettore ha imparato (0..1): cresce piano con le notti giocate, non con le sconfitte.
+   Se perdi più volte di fila si stanca (pietà): più lento, più distratto, meno trappole. */
+function learn(){const lvl=clamp(((mem.runs||1)-1)/8,0,1);const mercy=clamp(((mem.streak||0)-1)/3,0,1);return clamp(lvl*(1-0.7*mercy),0,1);}
+function mercy(){return clamp(((mem.streak||0)-1)/3,0,1);}
+// in fuga, a stamina piena, sei sempre un filo più veloce di lui (corsa 4.6)
+function chaseSpeed(){return 3.75+0.6*learn()-0.25*mercy();}
+function frenzySpeed(){return 4.0+0.45*learn()-0.2*mercy();}
+function suspRate(){return (0.7+0.4*learn())*(1-0.25*mercy());}
 function goTo(x,z){const p=bfs(Math.floor(E.x),Math.floor(E.z),Math.floor(x),Math.floor(z));E.path=p||[];E.finalX=x;E.finalZ=z;return!!p;}
 function investigate(x,z){E.state='investigate';E.invX=x;E.invZ=z;E.t=0;goTo(x,z);}
 function shares(obj){const t=Object.values(obj).reduce((a,b)=>a+(+b||0),0);return id=>t?(+obj[id]||0)/t:0;}
 function topOf(obj){const e=Object.entries(obj).sort((a,b)=>b[1]-a[1]);return e.length?e[0]:null;}
 function startSearch(cx,cz,radius){
   const ps=shares(mem.hides),gs=shares(NET.hides);
-  let list=HIDES.map(h=>{const d=Math.hypot(h.px-cx,h.pz-cz);return{h,d,s:2/(1+d)+3*ps(h.id)+2*gs(h.id)+(h.id===E.knownSpot?100:0)+Math.random()*0.3};})
+  let list=HIDES.map(h=>{const d=Math.hypot(h.px-cx,h.pz-cz);return{h,d,s:2/(1+d)+(3*ps(h.id)+2*gs(h.id))*learn()+(h.id===E.knownSpot?100:0)+Math.random()*0.3};})
     .filter(o=>o.d<radius||o.h.id===E.knownSpot).sort((a,b)=>b.s-a.s).slice(0,E.state==='frenzy'?4:3);
   E.searchList=list.map(o=>o.h);E.state='search';E.knownSpot=null;nextSearch();
 }
@@ -1195,13 +1205,13 @@ function waypoints(){
     [6.5,5.5,'camera'],[7.5,6.5,'camera'],[12.5,5.5,'studio'],[15.5,6.5,'studio'],[19.5,5.5,'bagno'],[18.5,13.5,'ingresso'],[19.5,12.5,'ingresso']];
   const pr=shares(mem.caughtRooms);const gEnt=topOf(Object.fromEntries(Object.entries(NET.stats).filter(([k])=>k.startsWith('entry_')).map(([k,v])=>[k.slice(6),v])));
   const gRoom=gEnt&&ENTRY_BY_ID[gEnt[0]]?(roomAt(ENTRY_BY_ID[gEnt[0]].x+0.5,ENTRY_BY_ID[gEnt[0]].z+0.5)||roomAt(ENTRY_BY_ID[gEnt[0]].x+1.5,ENTRY_BY_ID[gEnt[0]].z+0.5)):null;
-  return W.map(([x,z,r])=>({x,z,r,w:1+2.5*pr(r)+(gRoom&&gRoom.id===r?1.2:0)}));
+  const L=learn();return W.map(([x,z,r])=>({x,z,r,w:1+(2.5*pr(r)+(gRoom&&gRoom.id===r?1.2:0))*L}));
 }
 function nextPatrol(){
   const fav=topOf(mem.hides);
-  if(fav&&fav[1]>=2&&Math.random()<0.28){E.searchList=[HIDE_BY_ID[fav[0]]];E.state='search';nextSearch();return;}
+  if(fav&&fav[1]>=2&&Math.random()<0.28*learn()){E.searchList=[HIDE_BY_ID[fav[0]]];E.state='search';nextSearch();return;}
   const gf=topOf(NET.hides);
-  if(gf&&HIDE_BY_ID[gf[0]]&&Math.random()<0.12){E.searchList=[HIDE_BY_ID[gf[0]]];E.state='search';nextSearch();return;}
+  if(gf&&HIDE_BY_ID[gf[0]]&&Math.random()<0.12*learn()){E.searchList=[HIDE_BY_ID[gf[0]]];E.state='search';nextSearch();return;}
   const ws=waypoints().filter(w=>Math.hypot(w.x-E.x,w.z-E.z)>3);const tot=ws.reduce((a,w)=>a+w.w,0);let r=Math.random()*tot;
   let w=ws[0];for(const o of ws){r-=o.w;if(r<=0){w=o;break;}}
   E.state='patrol';goTo(w.x,w.z);E.pauseT=0;
@@ -1250,7 +1260,7 @@ function updateEttore(dt){
   // vista
   const see=eVision(dt);
   if(!['chase','frenzy','caught'].includes(E.state)){
-    if(see>0){E.susp+=see*dt*(E.state==='search'||E.state==='check'||E.state==='investigate'?4.2:3.0);}else E.susp=Math.max(0,E.susp-dt*0.35);
+    if(see>0){E.susp+=see*dt*(E.state==='search'||E.state==='check'||E.state==='investigate'?4.2:3.0)*suspRate();}else E.susp=Math.max(0,E.susp-dt*0.35);
     if(E.susp>=1){E.susp=1;if(E.state==='tv'){E.state='stand';E.t=0.6;E.afterStand='chase';}else spotted();}
     else if(E.susp>0.4&&(E.state==='patrol')){investigate(P.x,P.z);sfx('hm',E.x,E.z);}
   }
@@ -1274,7 +1284,7 @@ function updateEttore(dt){
       if(E.state==='frenzy'){E.frenzyT-=dt;if(!P.hidden){E.lastSeen={x:P.x,z:P.z};}if(E.frenzyT<=0){E.state='chase';E.lostT=see?0:1.5;}}
       else{if(see>0){E.lastSeen={x:P.x,z:P.z};E.lostT=0;P.lastHideSeenT=G.time;}else E.lostT+=dt;}
       E.repathT-=dt;if(E.repathT<=0&&E.lastSeen){E.repathT=0.25;goTo(E.lastSeen.x,E.lastSeen.z);}
-      const sp=E.state==='frenzy'?SPEED.frenzy:chaseSpeed();
+      const sp=E.state==='frenzy'?frenzySpeed():chaseSpeed();
       const arrived=eMove(dt,sp);
       if(!P.hidden&&!P.climb&&Math.hypot(P.x-E.x,P.z-E.z)<0.8){catchPlayer('chase');return;}
       if(P.climb&&P.climb.fromOut===false&&Math.hypot(P.x-E.x,P.z-E.z)<0.9&&P.climb.t<0.35){catchPlayer('chase');return;}
@@ -1293,7 +1303,7 @@ function catchPlayer(how){
   const room=roomAt(P.hidden?P.hidden.px:P.x,P.hidden?P.hidden.pz:P.z);
   if(P.hidden){const h=P.hidden;P.x=h.ex;P.z=h.ez;P.hidden=null;$('#hideov').className='';}
   E.yaw=Math.atan2(-(P.x-E.x),-(P.z-E.z));
-  mem.caught++;if(room)mem.caughtRooms[room.id]=(mem.caughtRooms[room.id]||0)+1;saveMem();
+  mem.caught++;mem.streak=(mem.streak||0)+1;if(room)mem.caughtRooms[room.id]=(mem.caughtRooms[room.id]||0)+1;saveMem();
   netInc('stats/caught');netSet('fallen/'+pid,{name:playerName(),at:Date.now(),x:+P.x.toFixed(2),z:+P.z.toFixed(2),room:room?room.id:'fuori'});
   setTimeout(()=>{sfx('scream');say(pick(['Trovato.','Resta. Resta con noi.','Non dovevi entrare.']),'E',2);},180);
   if(AU.ctx)AU.chase.gain.setTargetAtTime(0,AU.ctx.currentTime,0.5);
@@ -1366,7 +1376,7 @@ function updatePlayer(dt){
 function noiseForce(x,z){if(E.state==='tv'||E.state==='stand'){E.state='stand';E.t=0.7;E.invX=x;E.invZ=z;}else if(!['chase','frenzy','caught'].includes(E.state))investigate(x,z);}
 function onEnter(){
   const e=P.lastPortal;
-  if(!G.entryDone&&e){G.entryDone=true;G.firstEntry=e;mem.entries[e]=(mem.entries[e]||0)+1;saveMem();netInc('stats/entry_'+e);}
+  if(!G.entryDone&&e){G.entryDone=true;G.firstEntry=e;for(const k in mem.entries)if(k!==e)mem.entries[k]=Math.max(0,mem.entries[k]-1);mem.entries[e]=(mem.entries[e]||0)+1;saveMem();netInc('stats/entry_'+e);}
   if(!G.enteredOnce){G.enteredOnce=true;if(!TUT.on)showHint(G.stereo?'Ascolta i suoi passi. Se ti vede: corri e nasconditi.<br>Nascosto: tieni premuto (o grilletto sinistro) per trattenere il respiro.':IS_TOUCH?'Ascolta i suoi passi. Se ti vede: corri, chiudi le porte, nasconditi.<br>Mentre sei nascosto, tieni premuto TRATTIENI RESPIRO quando è vicino.':'Ascolta i suoi passi. Se ti vede: corri, chiudi le porte, nasconditi.<br>Nascosto: tieni premuto SPAZIO per trattenere il respiro quando è vicino.',7);}
 }
 function onExit(){if(P.hasTape)win();}
@@ -1377,10 +1387,12 @@ function onExit(){if(P.hasTape)win();}
 function learnedLines(){
   const L=[];const ph=topOf(mem.hides),pe=topOf(mem.entries);
   if(ph)L.push(`Ti sei nascosto ${HIDE_BY_ID[ph[0]].in} ${ph[1]} ${ph[1]===1?'volta':'volte'}: <b>${ph[1]>=2?'ora controlla lì per primo':'se ci torni, se ne ricorderà'}</b>.`);
-  if(pe){const n=pe[1];L.push(`Sei entrato ${ENTRY_BY_ID[pe[0]].da} ${n} ${n===1?'volta':'volte'}: <b>${n>=3?'la troverai inchiodata':'la prossima volta ci saranno delle lattine'}</b>.`);}
-  if(mem.throws>=4)L.push(`Hai lanciato ${mem.throws} oggetti per distrarlo: <b>spesso non ci casca più</b>.`);
+  if(pe){const n=pe[1];L.push(`Sei entrato ${ENTRY_BY_ID[pe[0]].da} ${n} ${n===1?'volta':'volte'}: <b>${mercy()>=0.6?'ma per ora è troppo stanco per farci qualcosa':n>=4&&(mem.runs||1)>=4&&pe[0]!=='porta_retro'?'la troverai inchiodata (la porta sul retro resta aperta)':n>=2?'la prossima volta ci saranno delle lattine':'se ci torni, se ne ricorderà'}</b>.`);}
+  if(mem.throws>=6)L.push(`Hai lanciato ${mem.throws} oggetti per distrarlo: <b>a volte non ci casca più</b>.`);
   else if(mem.throws>0)L.push(`Hai lanciato ${mem.throws} ${mem.throws===1?'oggetto':'oggetti'}. <b>Sta prendendo nota.</b>`);
-  if(mem.caught>0)L.push(`Ti ha preso ${mem.caught} ${mem.caught===1?'volta':'volte'}: <b>è più veloce del ${Math.round(Math.min(mem.caught,6)*2.5)}%</b> e pattuglia di più ${pluralRooms()}.`);
+  if(mem.caught>0)L.push(`Ti ha preso ${mem.caught} ${mem.caught===1?'volta':'volte'}: pattuglia di più ${pluralRooms()}.`);
+  if(mercy()>0)L.push(`Ti ha preso ${mem.streak} volte di fila: <b>è stanco, la prossima notte sarà più lento e distratto</b>.`);
+  else if(learn()>0.05)L.push(`Notte dopo notte impara: <b>${Math.round(learn()*100)}%</b> di quello che sa su di te lo usa già.`);
   if(mem.torchSpotted>0)L.push(`Gli hai puntato la torcia in faccia ${mem.torchSpotted} ${mem.torchSpotted===1?'volta':'volte'}.`);
   return L;
 }
@@ -1406,7 +1418,7 @@ function showDead(){
   $('#bNote').disabled=false;$('#bNote').textContent='SCRIVI';hideTouch();
 }
 function win(){
-  if(G.state!=='play')return;G.state='won';mem.wins++;saveMem();netInc('stats/escaped');
+  if(G.state!=='play')return;G.state='won';mem.wins++;mem.streak=0;saveMem();netInc('stats/escaped');
   if(AU.ctx)AU.chase.gain.setTargetAtTime(0,AU.ctx.currentTime,1);say('Ti ho sentito. Ora anche lei conosce la tua voce.','E',3);
   const t=Math.round(G.runT);
   $('#winLearn').innerHTML=`<div class="h">NOTTE 1 — ${Math.floor(t/60)}:${String(t%60).padStart(2,'0')} · ricordi ${G.loreFound}/4</div>`+
