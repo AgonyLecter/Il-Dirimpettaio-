@@ -122,6 +122,15 @@ body.stereo .tut{left:18%;bottom:30%;max-width:30%;font-size:10px}
  .tut{bottom:calc(10% + 22px);font-size:11px}
 }
 @media (max-height:520px) and (orientation:portrait){#title{flex-direction:column}}
+#forget{align-items:center;justify-content:center;background:#000e;padding:20px;z-index:30}
+#forget .fbox{max-width:520px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+#forget p{font-size:clamp(14px,3.6vw,18px);line-height:1.6;color:#d8cfc0}
+#forget p i{color:#d34a35;font-style:normal}
+.forgetL{color:#6b3a30}
+#scare{z-index:60;background:#000;align-items:center;justify-content:center}
+#scare canvas{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
+#scare.on{animation:shk .06s infinite}
+@keyframes shk{0%{transform:translate(0,0) scale(1.05)}25%{transform:translate(-14px,9px) scale(1.12)}50%{transform:translate(11px,-7px) scale(1.08)}75%{transform:translate(-6px,-12px) scale(1.15)}100%{transform:translate(8px,6px) scale(1.06)}}
 #rot{flex-direction:column;gap:10px;align-items:center;justify-content:center;background:#000;z-index:40;font-size:16px;text-align:center;padding:30px}
 </style>
 </head>
@@ -169,6 +178,7 @@ body.stereo .tut{left:18%;bottom:30%;max-width:30%;font-size:10px}
     <button class="b" id="bStart">ENTRA</button>
   </div>
   <button class="lnk" id="bTut">rivedi prologo e tutorial</button>
+  <button class="lnk forgetL" id="bForget">fai dimenticare a Ettore chi sei</button>
   <div class="tiny">🎧 Usa le cuffie: senti da dove arriva Ettore, anche alle tue spalle.<br>Gioca col telefono in orizzontale:<br>tocca lo schermo per andare a schermo intero.</div>
   </div>
   <div id="mem"><div class="h">ETTORE RICORDA</div><div id="memBody">La radio sta ascoltando…</div></div>
@@ -190,6 +200,7 @@ body.stereo .tut{left:18%;bottom:30%;max-width:30%;font-size:10px}
   <div class="tiny">Lascia un segno col gesso per chi entrerà dopo di te (max 40 caratteri)</div>
   <div id="noteRow"><input id="note" maxlength="40" placeholder="es. non entrare dalla cucina"><button class="b alt" id="bNote">SCRIVI</button></div>
   <div class="btns"><button class="b" id="bRetry">RIENTRA</button></div>
+  <button class="lnk forgetL" id="bForget2">è troppo difficile? fagli dimenticare chi sei</button>
 </div>
 
 <div class="ov" id="win">
@@ -199,6 +210,8 @@ body.stereo .tut{left:18%;bottom:30%;max-width:30%;font-size:10px}
   <div class="btns"><button class="b" id="bAgain">TORNA DENTRO</button></div>
 </div>
 
+<div class="ov" id="forget"><div class="fbox"><p id="forgetT"></p><div class="btns"><button class="b" id="fYes">CANCELLA TUTTO</button><button class="b alt" id="fNo">NO, CI RIPROVO</button></div></div></div>
+<div class="ov" id="scare"><canvas id="scareC" width="96" height="60"></canvas></div>
 <div class="ov" id="rot">Gira il telefono in orizzontale<br><span style="font-size:12px;color:#6d6155">Il Dirimpettaio si gioca a schermo intero, in orizzontale.</span></div>
 
 <script type="module">
@@ -1415,7 +1428,7 @@ function renderMemory(){
 function showDead(){
   G.state='dead';hudStyle('hint','opacity','0');$('#dead').classList.add('on');
   $('#deadLearn').innerHTML='<div class="h">ETTORE HA IMPARATO</div>'+(learnedLines().join('<br>')||'…')+(globalLines().length?'<div class="h" style="margin-top:8px">DA TUTTI</div>'+globalLines().join('<br>'):'');
-  $('#bNote').disabled=false;$('#bNote').textContent='SCRIVI';hideTouch();
+  forgetVisible();$('#bNote').disabled=false;$('#bNote').textContent='SCRIVI';hideTouch();
 }
 function win(){
   if(G.state!=='play')return;G.state='won';mem.wins++;mem.streak=0;saveMem();netInc('stats/escaped');
@@ -1633,7 +1646,7 @@ async function start(vr,again=false){
   $('#title').classList.remove('on');
   checkRot();
   await intro(again);
-  TUT.on=!mem.tutDone;TUT.i=0;TUT.t=0;TUT.look=0;TUT.dist=0;TUT.shown=-1;TUT.lx=P.x;TUT.lz=P.z;TUT.ly=P.yaw;TUT.okT=0;
+  TUT.on=!mem.tutDone;if(TUT.on){mem.tutDone=true;saveMem();} // solo la prima partita: anche se muori non tornaTUT.i=0;TUT.t=0;TUT.look=0;TUT.dist=0;TUT.shown=-1;TUT.lx=P.x;TUT.lz=P.z;TUT.ly=P.yaw;TUT.okT=0;
   G.state='play';$('#hud').classList.add('on');if(IS_TOUCH&&!G.stereo)$('#touch').classList.add('on');
   $('#bTorch').classList.toggle('on',P.torch);
   setObjective();
@@ -1652,6 +1665,7 @@ function intro(again){return new Promise(res=>{
     ['STANOTTE','Poco fa, oltre la strada, la sua radio si è accesa da sola.'],
     ['',yours],
     ['','Entri per dimostrare che è un mostro.<br>Ma lui ti studia. E la casa mente.']];
+  else if(mem.resets&&mem.plays<=1)lines=[['','Hai chiesto di dimenticare.'],['','Ettore ha fatto finta.'],['','<i style="color:#d34a35;font-style:normal">Ma ti stava aspettando.</i>']];
   else if(again)lines=[['','Rientri.'],['','La radio ricorda come sei caduto.']];
   else lines=[['NOTTE DOPO NOTTE','Sei tornato.'],['','Ettore se lo aspettava.'],['','La radio ricorda tutto quello che hai fatto. E quello che hanno fatto gli altri.']];
   const el=$('#intro'),p=$('#introP'),w=$('#introW');el.classList.add('on');let i=0,done=false,tm=null;
@@ -1701,6 +1715,60 @@ function tutTick(dt){
   if(st.done()){TUT.i++;TUT.look=0;TUT.dist=0;sfx('pickup');for(const el of document.querySelectorAll('[data-h="tut"]'))el.classList.add('ok');
     TUT.okT=st.wait?0.6:0.9;}
 }
+/* ---------- reset per disperati: Ettore ti prende in giro, poi ti salta addosso ---------- */
+function forgetVisible(){const on=(mem.runs||0)>=3;for(const id of['bForget','bForget2'])$('#'+id).style.display=on?'':'none';}
+const FORGET_ASK=[
+  'Ti arrendi già? <i>Ettore ride piano, dietro la porta.</i><br>Vuoi che si dimentichi di te? Dove ti nascondi, da dove entri, quante volte ti ha preso?',
+  'Davvero? Dopo tutto quello che avete passato insieme?<br><i>«Pensavo fossimo amici.»</i>',
+  'Così piccolo, così spaventato. <i>«Va bene. Faccio finta di non conoscerti.»</i><br>Cancelli tutto quello che ha imparato?'];
+const FORGET_DONE=['Fatto. Non ti conosce più.<br><i>La radio, però, ha registrato anche questo.</i>',
+  'Ti ha dimenticato.<br><i>«…chi sei? Ah, giusto. Nessuno.»</i>','Cancellato.<br><i>Lucia e Anna dicono che tornerai comunque.</i>'];
+let forgetFrom='title';
+function openForget(from){forgetFrom=from;auInit();$('#forgetT').innerHTML=pick(FORGET_ASK);$('#fYes').style.display='';$('#fNo').textContent='NO, CI RIPROVO';$('#forget').classList.add('on');
+  if(AU.ctx){sfx('hm');}}
+$('#bForget').onclick=()=>openForget('title');$('#bForget2').onclick=()=>openForget('dead');
+$('#fNo').onclick=()=>{$('#forget').classList.remove('on');if(forgetFrom==='dead'&&$('#fNo').dataset.after==='1'){$('#fNo').dataset.after='';restart();}};
+$('#fYes').onclick=()=>{
+  $('#fYes').style.display='none';$('#fNo').style.display='none';$('#forgetT').innerHTML='<i>«Va bene.»</i>';
+  setTimeout(jumpScare,900+Math.random()*900);};
+function jumpScare(){
+  const el=$('#scare'),cv2=$('#scareC'),c=cv2.getContext('2d');el.classList.add('on');
+  if(AU.ctx){sfx('scream');sfx('stinger');}
+  const t0=performance.now();
+  const W=96,H=60,img=c.createImageData(W,H),D=img.data;const seed=Math.random()*100;
+  const hash=(x,y)=>{const v=Math.sin(x*127.1+y*311.7+seed)*43758.5;return v-Math.floor(v);};
+  const draw=()=>{const t=(performance.now()-t0)/1000;
+    const z=1.05+t*0.55+Math.random()*0.04,ox=(Math.random()-0.5)*0.05,oy=(Math.random()-0.5)*0.04,mo=0.13+0.05*Math.sin(t*38)+t*0.06;
+    const red=Math.random()<0.18;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      let u=((x-W/2)/H)/z+ox,v=((y-H/2)/H)/z+0.04+oy;let r=0,g=0,b=0;
+      const head=(u*u)/(0.36*0.36)+(v*v)/(0.52*0.52);
+      if(head<1){const sh=0.55+0.45*(1-head)-v*0.35;const n=hash(x>>1,y>>1)*0.18;
+        r=(150+n*120)*sh;g=(132+n*100)*sh;b=(116+n*80)*sh;
+        // vene scure
+        if(Math.abs(Math.sin(u*31+v*7+seed)+Math.sin(v*23-u*5))<0.06){r*=0.45;g*=0.4;b*=0.45;}
+        // orbite: buchi neri profondi, pupilla rossa minuscola
+        for(const sx of[-1,1]){const ex=(u-sx*0.13)/0.095,ey=(v+0.1)/(0.07+0.01*sx);const e=ex*ex+ey*ey;
+          if(e<1.8){const k=Math.max(0,e-1)/0.8;r*=k;g*=k;b*=k;}
+          if(e<1){const pd=((u-sx*0.13)**2+(v+0.1)**2);if(pd<0.0006){r=255;g=40+Math.random()*60;b=20;}}}
+        // bocca spalancata con denti storti
+        const mx=u/0.2,my=(v-0.25)/mo;if(mx*mx+my*my<1){r=18;g=3;b=3;
+          const ty=(v-0.25)/mo;if(Math.abs(Math.abs(ty)-0.82)<0.2&&hash(Math.floor((u+1)*40),ty>0?7:3)>0.25){r=215;g=205;b=180;}}
+      }
+      if(red){r=r*1.4+40;g*=0.3;b*=0.3;}
+      const gr=(hash(x+t*97,y-t*53)-0.5)*40;const o=(y*W+x)*4;D[o]=r+gr;D[o+1]=g+gr;D[o+2]=b+gr;D[o+3]=255;}
+    c.putImageData(img,0,0);
+    for(let i=0;i<4;i++){const y=Math.random()*H|0;c.fillStyle=`rgba(255,${Math.random()*60|0},30,${Math.random()*0.4})`;c.fillRect(0,y,W,1+Math.random()*2);}
+    if(t<1.25)requestAnimationFrame(draw);else{el.classList.remove('on');doForget();}};
+  draw();
+  if(navigator.vibrate)try{navigator.vibrate([300,80,400]);}catch(e){}
+}
+function doForget(){
+  const keep={tutDone:true,prologueSeen:true,resets:(mem.resets||0)+1};
+  for(const k of Object.keys(mem))delete mem[k];Object.assign(mem,structuredClone(MEM_DEF),keep);saveMem();
+  $('#forgetT').innerHTML=pick(FORGET_DONE);$('#fNo').style.display='';$('#fNo').textContent='VA BENE…';$('#fNo').dataset.after='1';
+  renderMemory();forgetVisible();}
+forgetVisible();
 $('#bTut').onclick=()=>{mem.tutDone=false;mem.prologueSeen=false;saveMem();$('#bTut').textContent='ok: alla prossima entrata';};
 $('#bStart').onclick=()=>start(false);
 /* schermo intero orizzontale: al primo tocco (e a ogni tocco se se ne esce) */
