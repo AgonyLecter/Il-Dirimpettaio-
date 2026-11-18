@@ -1510,7 +1510,10 @@ function renderScene(proj,view,camPos,flPos,flDir){
   const fl=P.torch?(E.state==='chase'||E.state==='frenzy'||Math.hypot(E.x-P.x,E.z-P.z)<3?(Math.random()<0.12?0.15:1):1):0;
   gl.uniform1f(u.uFl,P.hidden?0:fl); // nascosto: torcia spenta, guardi fuori dalle fessure
   const inside=isInsideCell(camPos[0],camPos[2]);
-  gl.uniform3fv(u.uAmb,inside?(P.hidden?[.045,.04,.05]:[.022,.02,.026]):[.085,.095,.14]);gl.uniform3fv(u.uFogC,inside?[0,0,0]:[.035,.042,.075]);gl.uniform1f(u.uFog,inside?0.13:0.06);
+  // occhi abituati al buio: a torcia spenta, in pochi secondi la casa riemerge in grigio-blu (luna dalle finestre)
+  const ad=G.adapt||0;
+  gl.uniform3fv(u.uAmb,inside?[lerp(.03,.115,ad),lerp(.028,.12,ad),lerp(.036,.16,ad)]:[lerp(.085,.13,ad),lerp(.095,.145,ad),lerp(.14,.2,ad)]);
+  gl.uniform3fv(u.uFogC,inside?[0,0,0]:[.035,.042,.075]);gl.uniform1f(u.uFog,inside?lerp(0.13,0.07,ad):0.06);
   gl.uniform1f(u.uT,G.time);
   const lp=[],lc=[];for(const l of LIGHTS){let k=1;if(l.k==='tv')k=G.tvFlick;if(l.k==='bulb')k=G.bulb;if(l.k==='trap')k=0.7+0.3*Math.sin(G.time*2.1)+(G.frenzyFx>0?1.5:0);if(l.k==='radio')k=0.7+(G.frenzyFx>0?2:0);if(l.k==='elamp'){const e=E.lamp||[E.x,1,E.z];l.x=e[0];l.y=e[1];l.z=e[2];k=(E.state==='tv'?0.25:0.8)*(0.82+0.18*Math.sin(G.time*17)*Math.sin(G.time*6.1));}
     lp.push(l.x,l.y,l.z,l.r);lc.push(l.c[0]*k,l.c[1]*k,l.c[2]*k);}
@@ -1551,6 +1554,7 @@ function render(){
 let last=performance.now(),tickT=0,heartT=0;
 function update(dt){
   G.time+=dt;
+  G.adapt=lerp(G.adapt||0,(P.torch&&!P.hidden)?0:1,Math.min(1,dt*((P.torch&&!P.hidden)?2.5:0.6)));
   if(G.state==='play'&&!G.paused){
     G.runT+=dt;
     updatePlayer(dt);
